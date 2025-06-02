@@ -59,6 +59,7 @@ app.post('/ingest', async (req: Request, res: Response) => {
       },
     });
   } catch (error) {
+    cleanupTempDirectories().catch(console.error);
     res.status(500).json({
       error: 'Failed to process repository',
       message: error instanceof Error ? error.message : String(error),

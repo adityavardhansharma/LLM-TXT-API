@@ -5,7 +5,6 @@ import ignore from 'ignore';
 import crypto from 'crypto';
 import { rimraf } from 'rimraf';
 import { Extract } from 'unzipper';
-import { execSync } from 'child_process';
 import fs, { createWriteStream } from 'fs';
 
 const DEFAULT_IGNORE_PATTERNS = [
@@ -270,37 +269,11 @@ export const extractRepositoryContent = async (
 };
 
 /**
- * Cleans up old temporary directories that are older than the specified age
- * @param maxAgeHours - Maximum age of temp directories in hours
- */
-const cleanupOldTempDirs = (maxAgeHours: number = 24): void => {
-  const tmpDir = os.tmpdir();
-  const items = fs.readdirSync(tmpDir);
-  const now = Date.now();
-
-  for (const item of items) {
-    if (item.startsWith('repogist-') || item.startsWith('repo-')) {
-      const itemPath = path.join(tmpDir, item);
-      try {
-        const stats = fs.statSync(itemPath);
-        const ageHours = (now - stats.mtimeMs) / (1000 * 60 * 60);
-
-        if (ageHours > maxAgeHours) {
-          fs.rmSync(itemPath, { recursive: true, force: true });
-        }
-      } catch (error) {
-        console.error(`Failed to process temp directory ${itemPath}:`, error);
-      }
-    }
-  }
-};
-
-/**
  * Creates a temporary directory for cloning the repository
  * @returns Path to the temporary directory
  */
 export const createTempDir = (): string => {
-  cleanupOldTempDirs();
+  cleanupTempDirectories();
 
   const tmpDir = path.join(os.tmpdir(), `repogist-${crypto.randomBytes(6).toString('hex')}`);
   fs.mkdirSync(tmpDir, { recursive: true });
