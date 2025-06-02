@@ -277,7 +277,7 @@ const getAvailableDiskSpace = (path: string): number => {
     const output = execSync(`df -B1 ${path}`).toString();
     const lines = output.split('\n');
     if (lines.length < 2) return 0;
-    
+
     const [, , , available] = lines[1].split(/\s+/);
     return parseInt(available, 10);
   } catch (error) {
@@ -311,7 +311,7 @@ const cleanupOldTempDirs = (maxAgeHours: number = 24): void => {
       try {
         const stats = fs.statSync(itemPath);
         const ageHours = (now - stats.mtimeMs) / (1000 * 60 * 60);
-        
+
         if (ageHours > maxAgeHours) {
           fs.rmSync(itemPath, { recursive: true, force: true });
         }
@@ -328,7 +328,7 @@ const cleanupOldTempDirs = (maxAgeHours: number = 24): void => {
  */
 export const createTempDir = (): string => {
   cleanupOldTempDirs();
-  
+
   const MIN_REQUIRED_SPACE = 1024 * 1024 * 1024;
   if (!hasEnoughDiskSpace(MIN_REQUIRED_SPACE)) {
     throw new Error('Not enough disk space available. Please free up some space and try again.');
