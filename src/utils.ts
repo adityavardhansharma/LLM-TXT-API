@@ -5,9 +5,8 @@ import ignore from 'ignore';
 import crypto from 'crypto';
 import { rimraf } from 'rimraf';
 import { Extract } from 'unzipper';
+import { execSync } from 'child_process';
 import fs, { createWriteStream } from 'fs';
-import { pipeline } from 'stream/promises';
-import { Readable } from 'stream';
 
 const DEFAULT_IGNORE_PATTERNS = [
   '**/*.lock',
@@ -269,10 +268,72 @@ export const extractRepositoryContent = async (
 };
 
 /**
+ * Gets the available disk space in bytes for the given path
+ * @param path - The path to check disk space for
+ * @returns Available space in bytes
+ */
+const getAvailableDiskSpace = (path: string): number => {
+  try {
+    const output = execSync(`df -B1 ${path}`).toString();
+    const lines = output.split('\n');
+    if (lines.length < 2) return 0;
+    
+    const [, , , available] = lines[1].split(/\s+/);
+    return parseInt(available, 10);
+  } catch (error) {
+    console.error('Error checking disk space:', error);
+    return 0;
+  }
+};
+
+/**
+ * Checks if there's enough disk space available
+ * @param requiredSpace - Required space in bytes
+ * @returns boolean indicating if there's enough space
+ */
+const hasEnoughDiskSpace = (requiredSpace: number): boolean => {
+  const availableSpace = getAvailableDiskSpace(os.tmpdir());
+  return availableSpace >= requiredSpace * 2;
+};
+
+/**
+ * Cleans up old temporary directories that are older than the specified age
+ * @param maxAgeHours - Maximum age of temp directories in hours
+ */
+const cleanupOldTempDirs = (maxAgeHours: number = 24): void => {
+  const tmpDir = os.tmpdir();
+  const items = fs.readdirSync(tmpDir);
+  const now = Date.now();
+
+  for (const item of items) {
+    if (item.startsWith('repogist-') || item.startsWith('repo-')) {
+      const itemPath = path.join(tmpDir, item);
+      try {
+        const stats = fs.statSync(itemPath);
+        const ageHours = (now - stats.mtimeMs) / (1000 * 60 * 60);
+        
+        if (ageHours > maxAgeHours) {
+          fs.rmSync(itemPath, { recursive: true, force: true });
+        }
+      } catch (error) {
+        console.error(`Failed to process temp directory ${itemPath}:`, error);
+      }
+    }
+  }
+};
+
+/**
  * Creates a temporary directory for cloning the repository
  * @returns Path to the temporary directory
  */
 export const createTempDir = (): string => {
+  cleanupOldTempDirs();
+  
+  const MIN_REQUIRED_SPACE = 1024 * 1024 * 1024;
+  if (!hasEnoughDiskSpace(MIN_REQUIRED_SPACE)) {
+    throw new Error('Not enough disk space available. Please free up some space and try again.');
+  }
+
   const tmpDir = path.join(os.tmpdir(), `repogist-${crypto.randomBytes(6).toString('hex')}`);
   fs.mkdirSync(tmpDir, { recursive: true });
   return tmpDir;
@@ -293,6 +354,17 @@ const downloadFile = async (url: string, targetPath: string): Promise<void> => {
 
   if (!response.ok) {
     throw new Error(`Failed to download file: ${response.status} ${response.statusText}`);
+  }
+
+  const contentLength = parseInt(response.headers.get('content-length') || '0', 10);
+  const MAX_DOWNLOAD_SIZE = 1024 * 1024 * 1024;
+
+  if (contentLength > MAX_DOWNLOAD_SIZE) {
+    throw new Error(`Repository size exceeds maximum allowed size of 1GB`);
+  }
+
+  if (!hasEnoughDiskSpace(contentLength)) {
+    throw new Error('Not enough disk space available for download');
   }
 
   const fileStream = createWriteStream(targetPath);
