@@ -458,3 +458,22 @@ export const removeTempDir = async (dir: string): Promise<void> => {
     );
   }
 };
+
+/**
+ * Cleans up all temp directories created by this application
+ */
+export const cleanupTempDirectories = async () => {
+  const tmpDir = os.tmpdir();
+  const items = fs.readdirSync(tmpDir);
+
+  for (const item of items) {
+    if (item.startsWith('repogist-') || item.startsWith('repo-')) {
+      const itemPath = path.join(tmpDir, item);
+      try {
+        await removeTempDir(itemPath);
+      } catch (error) {
+        console.error(`Failed to remove temp directory ${itemPath}:`, error);
+      }
+    }
+  }
+};

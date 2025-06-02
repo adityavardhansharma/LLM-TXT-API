@@ -1,20 +1,31 @@
 import {
-  convertUrlToGitUrl,
-  createTempDir,
   isGitUrl,
-  cloneRepository,
-  extractRepositoryContent,
   removeTempDir,
+  createTempDir,
+  cloneRepository,
+  convertUrlToGitUrl,
+  cleanupTempDirectories,
+  extractRepositoryContent,
 } from './utils';
 import 'dotenv/config';
 import cors from 'cors';
-import express, { Request, Response } from 'express';
+import express, { Request, Response, NextFunction } from 'express';
 
 const app = express();
 
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
+  console.error('Unhandled error:', err);
+  cleanupTempDirectories().catch(console.error);
+
+  res.status(500).json({
+    error: 'Internal server error',
+    message: 'Something went wrong, please try again later',
+  });
+});
 
 app.post('/ingest', async (req: Request, res: Response) => {
   const { url, ignorePatterns = [] } = req.body;
