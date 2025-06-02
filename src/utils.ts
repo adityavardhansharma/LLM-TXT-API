@@ -329,7 +329,7 @@ const cleanupOldTempDirs = (maxAgeHours: number = 24): void => {
 export const createTempDir = (): string => {
   cleanupOldTempDirs();
 
-  const MIN_REQUIRED_SPACE = 1024 * 1024 * 1024;
+  const MIN_REQUIRED_SPACE = 500 * 1024 * 1024;
   if (!hasEnoughDiskSpace(MIN_REQUIRED_SPACE)) {
     throw new Error('Not enough disk space available. Please free up some space and try again.');
   }
@@ -357,10 +357,10 @@ const downloadFile = async (url: string, targetPath: string): Promise<void> => {
   }
 
   const contentLength = parseInt(response.headers.get('content-length') || '0', 10);
-  const MAX_DOWNLOAD_SIZE = 1024 * 1024 * 1024;
+  const MAX_DOWNLOAD_SIZE = 500 * 1024 * 1024;
 
   if (contentLength > MAX_DOWNLOAD_SIZE) {
-    throw new Error(`Repository size exceeds maximum allowed size of 1GB`);
+    throw new Error(`Repository size exceeds maximum allowed size of 500MB`);
   }
 
   if (!hasEnoughDiskSpace(contentLength)) {
