@@ -17,6 +17,22 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+app.use((req: Request, res: Response, next: NextFunction) => {
+  const timeoutId = setTimeout(() => {
+    cleanupTempDirectories().catch(console.error);
+    res.status(408).json({
+      error: 'Request timeout',
+      message: 'The request took too long to process. Please try again.',
+    });
+  }, 30000);
+
+  res.on('finish', () => {
+    clearTimeout(timeoutId);
+  });
+
+  next();
+});
+
 app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
   console.error('Unhandled error:', err);
   cleanupTempDirectories().catch(console.error);
