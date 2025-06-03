@@ -212,7 +212,11 @@ export const generateTreeStructure = (
 export const extractRepositoryContent = async (
   repoPath: string,
   additionalIgnorePatterns: string[] = [],
-): Promise<{ content: string; tree: string }> => {
+): Promise<{
+  content: string;
+  tree: string;
+  index: { fileName: string; fileContent: string }[];
+}> => {
   if (!fs.existsSync(repoPath)) {
     throw new Error(`Repository path does not exist: ${repoPath}`);
   }
@@ -262,10 +266,59 @@ export const extractRepositoryContent = async (
 
   const tree = generateTreeStructure(repoPath, additionalIgnorePatterns);
 
+  const index = await generateIndex(repoPath, additionalIgnorePatterns);
+
   return {
     content: contentParts.join('\n'),
     tree,
+    index,
   };
+};
+
+const generateIndex = async (
+  repoPath: string,
+  additionalIgnorePatterns: string[] = [],
+): Promise<
+  {
+    fileName: string;
+    fileContent: string;
+  }[]
+> => {
+  const index: {
+    fileName: string;
+    fileContent: string;
+  }[] = [];
+
+  const ignoreFilter = ignore();
+  const gitignorePath = path.join(repoPath, '.gitignore');
+  ignoreFilter.add(['.git/**', ...DEFAULT_IGNORE_PATTERNS]);
+
+  if (fs.existsSync(gitignorePath)) {
+    const gitignoreContent = fs.readFileSync(gitignorePath, 'utf8');
+    ignoreFilter.add(gitignoreContent);
+  }
+
+  const files = await glob('**/*', {
+    cwd: repoPath,
+    dot: true,
+    nodir: true,
+    absolute: true,
+  });
+
+  for (const file of files) {
+    const relativePath = path.relative(repoPath, file);
+
+    if (ignoreFilter.ignores(relativePath)) {
+      continue;
+    }
+
+    const content = fs.readFileSync(file, 'utf-8');
+    index.push({
+      fileName: relativePath,
+      fileContent: content,
+    });
+  }
+  return index;
 };
 
 /**

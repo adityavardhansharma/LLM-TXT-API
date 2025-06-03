@@ -63,7 +63,7 @@ app.post('/ingest', async (req: Request, res: Response) => {
 
     await cloneRepository(gitInfo, tempDir);
 
-    const { content, tree } = await extractRepositoryContent(tempDir, ignorePatterns);
+    const { content, tree, index } = await extractRepositoryContent(tempDir, ignorePatterns);
     const output = `Repository Tree Structure:\n${tree}\n\nRepository Content:\n${content}`;
 
     res.json({
@@ -71,6 +71,7 @@ app.post('/ingest', async (req: Request, res: Response) => {
       data: {
         tree,
         content,
+        index,
         normalized: output,
       },
     });
