@@ -75,16 +75,18 @@ app.post('/ingest', async (req: Request, res: Response) => {
         normalized: output,
       },
     });
+
+    if (tempDir) {
+      console.log('Cleaning up temporary directory:', tempDir);
+      await removeTempDir(tempDir);
+    }
   } catch (error) {
+    console.error('Error processing repository:', error);
     cleanupTempDirectories().catch(console.error);
     res.status(500).json({
       error: 'Failed to process repository',
       message: error instanceof Error ? error.message : String(error),
     });
-  } finally {
-    if (tempDir) {
-      await removeTempDir(tempDir);
-    }
   }
 });
 

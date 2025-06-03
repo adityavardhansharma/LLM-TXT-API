@@ -4,7 +4,7 @@ import { glob } from 'glob';
 import ignore from 'ignore';
 import crypto from 'crypto';
 import { rimraf } from 'rimraf';
-import { Extract } from 'unzipper';
+import JSZip, { JSZipObject } from 'jszip';
 import fs, { createWriteStream } from 'fs';
 
 const DEFAULT_IGNORE_PATTERNS = [
@@ -207,7 +207,10 @@ export const generateTreeStructure = (
  *
  * @param repoPath - Path to the local git repository
  * @param additionalIgnorePatterns - Additional glob patterns to ignore
- * @returns Object containing repository content and tree structure
+ * @returns Object containing:
+ *   - tree: Directory tree structure as a string
+ *   - content: Concatenated text content of all files
+ *   - index: Array of objects containing file names and their contents
  */
 export const extractRepositoryContent = async (
   repoPath: string,
@@ -242,6 +245,8 @@ export const extractRepositoryContent = async (
   });
 
   const contentParts: string[] = [];
+  const index: { fileName: string; fileContent: string }[] = [];
+
   for (const file of files) {
     const relativePath = path.relative(repoPath, file);
 
@@ -256,6 +261,10 @@ export const extractRepositoryContent = async (
 
       const content = fs.readFileSync(file, 'utf-8');
       contentParts.push(`File: ${relativePath}\n${content}\n`);
+      index.push({
+        fileName: relativePath,
+        fileContent: content,
+      });
     } catch (error) {
       console.error(
         `Error processing file ${file}:`,
@@ -266,59 +275,11 @@ export const extractRepositoryContent = async (
 
   const tree = generateTreeStructure(repoPath, additionalIgnorePatterns);
 
-  const index = await generateIndex(repoPath, additionalIgnorePatterns);
-
   return {
     content: contentParts.join('\n'),
     tree,
     index,
   };
-};
-
-const generateIndex = async (
-  repoPath: string,
-  additionalIgnorePatterns: string[] = [],
-): Promise<
-  {
-    fileName: string;
-    fileContent: string;
-  }[]
-> => {
-  const index: {
-    fileName: string;
-    fileContent: string;
-  }[] = [];
-
-  const ignoreFilter = ignore();
-  const gitignorePath = path.join(repoPath, '.gitignore');
-  ignoreFilter.add(['.git/**', ...DEFAULT_IGNORE_PATTERNS]);
-
-  if (fs.existsSync(gitignorePath)) {
-    const gitignoreContent = fs.readFileSync(gitignorePath, 'utf8');
-    ignoreFilter.add(gitignoreContent);
-  }
-
-  const files = await glob('**/*', {
-    cwd: repoPath,
-    dot: true,
-    nodir: true,
-    absolute: true,
-  });
-
-  for (const file of files) {
-    const relativePath = path.relative(repoPath, file);
-
-    if (ignoreFilter.ignores(relativePath)) {
-      continue;
-    }
-
-    const content = fs.readFileSync(file, 'utf-8');
-    index.push({
-      fileName: relativePath,
-      fileContent: content,
-    });
-  }
-  return index;
 };
 
 /**
@@ -459,6 +420,39 @@ const getZipDownloadUrl = async (url: string, branch?: string): Promise<string> 
 };
 
 /**
+ * Extracts a ZIP file
+ * @param zipPath - Path to the ZIP file
+ * @param extractDir - Directory to extract into
+ */
+const extractZip = async (zipPath: string, extractDir: string): Promise<void> => {
+  const zip = new JSZip();
+
+  const zipData = await fs.promises.readFile(zipPath);
+  const zipContent = await zip.loadAsync(zipData);
+
+  const dirs = new Set<string>();
+  for (const [filePath] of Object.entries(zipContent.files)) {
+    const dirPath = path.dirname(path.join(extractDir, filePath));
+    if (!dirs.has(dirPath)) {
+      await fs.promises.mkdir(dirPath, { recursive: true });
+      dirs.add(dirPath);
+    }
+  }
+
+  const extractPromises = Object.entries(zipContent.files).map(
+    async ([filePath, file]: [string, JSZipObject]) => {
+      if (file.dir) return;
+
+      const content = await file.async('nodebuffer');
+      const fullPath = path.join(extractDir, filePath);
+      await fs.promises.writeFile(fullPath, content);
+    },
+  );
+
+  await Promise.all(extractPromises);
+};
+
+/**
  * Downloads and extracts a repository from a ZIP archive
  * @param gitInfo - Object containing git URL and optional branch
  * @param targetDir - Directory to extract into
@@ -482,23 +476,17 @@ export const cloneRepository = async (
     const extractDir = path.join(targetDir, 'extracted');
     fs.mkdirSync(extractDir, { recursive: true });
 
-    await new Promise((resolve, reject) => {
-      fs.createReadStream(zipPath)
-        .pipe(Extract({ path: extractDir }))
-        .on('close', () => {
-          const extractedDir = fs.readdirSync(extractDir)[0];
-          const extractedPath = path.join(extractDir, extractedDir);
+    await extractZip(zipPath, extractDir);
 
-          fs.readdirSync(extractedPath).forEach((file) => {
-            fs.renameSync(path.join(extractedPath, file), path.join(targetDir, file));
-          });
+    const extractedDir = fs.readdirSync(extractDir)[0];
+    const extractedPath = path.join(extractDir, extractedDir);
 
-          fs.rmSync(extractDir, { recursive: true });
-          fs.unlinkSync(zipPath);
-          resolve(undefined);
-        })
-        .on('error', reject);
+    fs.readdirSync(extractedPath).forEach((file) => {
+      fs.renameSync(path.join(extractedPath, file), path.join(targetDir, file));
     });
+
+    fs.rmSync(extractDir, { recursive: true });
+    fs.unlinkSync(zipPath);
   } catch (error) {
     throw new Error(
       `Failed to download and extract repository: ${error instanceof Error ? error.message : String(error)}`,
