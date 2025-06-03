@@ -1,17 +1,18 @@
 # Repo Gist API
 
-A service that ingests and analyzes Git repositories, providing their structure and content in a standardized format.
+A service that ingests and analyzes Git repositories, providing their structure and content in a standardized format. This API allows you to easily extract and analyze the contents of any public Git repository.
 
 ## Prerequisites
 
 - Node.js (v14 or higher)
+- npm or pnpm package manager
 
 ## Installation
 
 1. Clone the repository:
 
 ```bash
-git clone https://prudentbird/repogist-api.git
+git clone https://github.com/prudentbird/repogist-api.git
 cd repogist-api
 ```
 
@@ -33,6 +34,7 @@ NODE_ENV=development
 Start the server:
 
 ```bash
+npm run build
 npm start
 ```
 
@@ -59,12 +61,34 @@ Ingest a Git repository and get its structure and content.
   "data": {
     "tree": "Repository tree structure...",
     "content": "Repository content...",
+    "index": [
+      {
+        "fileName": "path/to/file",
+        "fileContent": "file contents..."
+      }
+    ],
     "normalized": "Combined output..."
   }
 }
 ```
 
-## Supported URL Formats
+**Error Responses:**
+
+```json
+{
+  "error": "Invalid Git repository URL",
+  "message": "The provided URL is not a valid Git repository URL"
+}
+```
+
+```json
+{
+  "error": "Request timeout",
+  "message": "The request took too long to process. Please try again."
+}
+```
+
+### Supported URL Formats
 
 - GitHub URLs:
   - `https://github.com/username/repo`
@@ -76,20 +100,62 @@ Ingest a Git repository and get its structure and content.
   - `git@github.com:username/repo.git`
   - `https://github.com/username/repo.git`
 
-## Default Ignored Files
+### Default Ignored Files
 
 The service automatically ignores common lock files and debug logs:
 
-- Package manager lock files (\*.lock, package-lock.json, yarn.lock, etc.)
-- Debug logs (npm-debug.log*, yarn-debug.log*, yarn-error.log\*)
+- Package manager lock files:
+  - `*.lock`
+  - `package-lock.json`
+  - `yarn.lock`
+  - `pnpm-lock.yaml`
+  - `Gemfile.lock`
+  - `Cargo.lock`
+  - `composer.lock`
+  - `poetry.lock`
+  - `go.sum`
+  - `bun.lockb`
+- Debug logs:
+  - `npm-debug.log*`
+  - `yarn-debug.log*`
+  - `yarn-error.log*`
+
+### Limitations
+
+- Maximum repository size: 300MB
+- Request timeout: 30 seconds
+- Binary files are automatically skipped
+- Only public repositories are supported
+
+## Development
+
+### Project Structure
+
+```
+repogist-api/
+├── src/
+│   ├── server.ts    # Express server setup
+│   └── utils.ts     # Utility functions
+├── .env            # Environment variables
+├── package.json    # Project dependencies
+└── README.md       # This file
+```
+
+### Environment Variables
+
+| Variable | Description      | Default     |
+| -------- | ---------------- | ----------- |
+| PORT     | Server port      | 3000        |
+| NODE_ENV | Environment mode | development |
+
+## Contributing
+
+Contributions are encouraged! If you find a major bug or have improvements, feel free
+to open an issue or submit a pull request.
 
 ## License
 
 This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
-
-## Contributing
-
-Contributions are encouraged! If you find a major bug or have improvements, feel free to open an issue or submit a pull request.
 
 ## Author
 
