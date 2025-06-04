@@ -1,5 +1,5 @@
 {
-  "name": "repogist-api",
+  "name": "LLM-TEXT-API",
   "version": "1.0.0",
   "description": "API for ingesting github repositories",
   "main": "dist/server.js",
@@ -10,8 +10,8 @@
     "start": "node dist/server.js",
     "dev": "ts-node-dev --respawn --transpile-only src/server.ts"
   },
-  "author": "prudentbird",
-  "license": "UNLICENSED",
+  "author": "Aditya Vardhan Sharma",
+  "license": "MIT",
   "dependencies": {
     "cors": "^2.8.5",
     "dotenv": "^16.5.0",
