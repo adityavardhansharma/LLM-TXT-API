@@ -1,4 +1,4 @@
-# Repo Gist API
+# LLM-TXT_API
 
 A service that ingests and analyzes Git repositories, providing their structure and content in a standardized format. This API allows you to easily extract and analyze the contents of any public Git repository.
 
@@ -11,23 +11,23 @@ A service that ingests and analyzes Git repositories, providing their structure 
 
 1. Clone the repository:
 
-```bash
-git clone https://github.com/prudentbird/repogist-api.git
-cd repogist-api
-```
+    ```bash
+    git clone https://github.com/prudentbird/repogist-api.git](https://github.com/adityavardhansharma/LLM-TXT-API.git
+    cd repogist-api
+    ```
 
 2. Install dependencies:
 
-```bash
-npm install
-```
+    ```bash
+    npm install
+    ```
 
 3. Create a `.env` file in the root directory:
 
-```env
-PORT=3000
-NODE_ENV=development
-```
+    ```env
+    PORT=3000
+    NODE_ENV=development
+    ```
 
 ## Usage
 
@@ -127,26 +127,14 @@ The service automatically ignores common lock files and debug logs:
 - Binary files are automatically skipped
 - Only public repositories are supported
 
-## Development
-
-### Project Structure
-
-```
-repogist-api/
-├── src/
-│   ├── server.ts    # Express server setup
-│   └── utils.ts     # Utility functions
-├── .env            # Environment variables
-├── package.json    # Project dependencies
-└── README.md       # This file
-```
-
 ### Environment Variables
 
 | Variable | Description      | Default     |
 | -------- | ---------------- | ----------- |
 | PORT     | Server port      | 3000        |
 | NODE_ENV | Environment mode | development |
+
+**Note:** You need to create a `.env` file in the base directory of the project to set these environment variables.
 
 ## Contributing
 
@@ -159,4 +147,4 @@ This project is licensed under the MIT License. See the [LICENSE](LICENSE) file 
 
 ## Author
 
-Created by [Prudent Bird](https://github.com/prudentbird) • [X/Twitter](https://x.com/prudentbird)
+Created by [adityavardhansharma](https://github.com/adityavardhansharma) (Aditya Vardhan Sharma)
