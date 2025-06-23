@@ -12,7 +12,7 @@ A service that ingests and analyzes Git repositories, providing their structure 
 1. Clone the repository:
 
     ```bash
-    git clone https://github.com/prudentbird/repogist-api.git](https://github.com/adityavardhansharma/LLM-TXT-API.git
+    git clone https://github.com/adityavardhansharma/LLM-TXT-API.git
     cd LLM-TXT-API
     ```
 
